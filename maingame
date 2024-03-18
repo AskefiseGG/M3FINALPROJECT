@@ -1,0 +1,249 @@
+# EcoQuest, Made by Alvaro Z. Maldonado
+
+import pygame
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Constants
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+ITEM_SIZE = 45
+WHITE = (255, 255, 255)
+TRASH_TEXTURE = pygame.image.load("IMAGES/TRASH_TEXTURE.png")
+PLAINS = pygame.image.load("IMAGES/plains_grass.png")
+BEACH = pygame.image.load("IMAGES/beach_sand.png")
+MOUNTAINS = pygame.image.load("IMAGES/mountain_rock.png")
+PLAYER_TEXTURE_RIGHT = pygame.image.load("IMAGES/player_texture_right.png")
+PLAYER_TEXTURE_LEFT = pygame.image.load("IMAGES/player_texture_left.png")
+
+# Rescale the textures to fit the screen
+PLAINS = pygame.transform.scale(PLAINS, (SCREEN_WIDTH, SCREEN_HEIGHT))
+BEACH = pygame.transform.scale(BEACH, (SCREEN_WIDTH, SCREEN_HEIGHT))
+MOUNTAINS = pygame.transform.scale(MOUNTAINS, (SCREEN_WIDTH, SCREEN_HEIGHT))
+PLAYER_TEXTURE_RIGHT = pygame.transform.scale(PLAYER_TEXTURE_RIGHT, (60, 60))  # Adjust size as needed
+PLAYER_TEXTURE_LEFT = pygame.transform.scale(PLAYER_TEXTURE_LEFT, (60, 60))  # Adjust size as needed
+TRASH_TEXTURE = pygame.transform.scale(TRASH_TEXTURE, (ITEM_SIZE, ITEM_SIZE))
+
+# Function to create a bold font with specified thickness
+def create_bold_font(font, thickness):
+    bold_font = pygame.font.Font(None, font.get_height() + thickness)  # Increase thickness by specified value
+    return bold_font
+
+# Classes
+class Player:
+    def __init__(self):
+        self.x = SCREEN_WIDTH // 2
+        self.y = SCREEN_HEIGHT // 2
+        self.direction = "RIGHT"  # Initial direction
+
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+        # Ensure player stays within bounds
+        self.x = max(0, min(SCREEN_WIDTH, self.x))
+        self.y = max(0, min(SCREEN_HEIGHT, self.y))
+        # Update direction
+        if dx > 0:
+            self.direction = "RIGHT"
+        elif dx < 0:
+            self.direction = "LEFT"
+
+    def draw(self, screen):
+        if self.direction == "RIGHT":
+            screen.blit(PLAYER_TEXTURE_RIGHT, (self.x - PLAYER_TEXTURE_RIGHT.get_width() // 2, self.y - PLAYER_TEXTURE_RIGHT.get_height() // 2))
+        else:
+            screen.blit(PLAYER_TEXTURE_LEFT, (self.x - PLAYER_TEXTURE_LEFT.get_width() // 2, self.y - PLAYER_TEXTURE_LEFT.get_height() // 2))
+
+class Item:
+    def __init__(self):
+        self.x = random.randint(ITEM_SIZE, SCREEN_WIDTH - ITEM_SIZE)  # Avoid edges
+        self.y = random.randint(ITEM_SIZE, SCREEN_HEIGHT - ITEM_SIZE)  # Avoid edges
+
+    def draw(self, screen):
+        screen.blit(TRASH_TEXTURE, (self.x, self.y))
+
+# Function to handle game start
+def start_game(screen, font):
+    # Load the background image
+    background_image = pygame.image.load("IMAGES/background.png")
+    background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    # Define colors
+    TEXT_BACKGROUND_COLOR = (37, 23, 49)  # #251731
+    TEXT_COLOR = (160, 222, 7)  # #a0de07
+
+    space_pressed = False
+    while not space_pressed:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    space_pressed = True
+
+        # Display the background image
+        screen.blit(background_image, (0, 0))
+
+        # Create a rectangle for the text background
+        text_background_rect = pygame.Rect(50, SCREEN_HEIGHT - 100, SCREEN_WIDTH - 100, 50)
+        pygame.draw.rect(screen, TEXT_BACKGROUND_COLOR, text_background_rect)
+
+        # Set the font style to bold with a slightly increased thickness
+        bold_font = create_bold_font(font, 1)  # Increase thickness by 1 pixel
+        text = bold_font.render("Press SPACE To Start The Game!", True, TEXT_COLOR)
+        text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 75))
+        screen.blit(text, text_rect)
+
+        pygame.display.flip()
+
+# Main function
+def main():
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("EcoQuest")
+
+    player = Player()
+    items = []
+    item_collected = False
+    item_timer = 0
+    time_left = 10  # Set the timer to start at 10 seconds
+    level = 1
+
+    clock = pygame.time.Clock()
+
+    levels = [
+        {"background_texture": PLAINS, "items_to_collect": 5},
+        {"background_texture": BEACH, "items_to_collect": 10},
+        {"background_texture": MOUNTAINS, "items_to_collect": 15}
+    ]
+
+    # Start game when space bar is pressed
+    font = pygame.font.SysFont('arial', 36)
+    start_game(screen, font)
+
+    # Game loop
+    running = True
+    while running:
+        screen.fill(WHITE)  # Fill screen with white background
+
+        # Draw background texture
+        screen.blit(levels[level-1]["background_texture"], (0, 0))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        # Show start menu or countdown
+        if not item_collected:
+            font = pygame.font.SysFont('arial', 36)
+            if level == 1:
+                text = font.render("Get Ready For The Plains!", True, WHITE)
+            elif level == 2:
+                text = font.render("Get Ready For The Beach!", True, WHITE)
+            else:
+                text = font.render("Get Ready For The Mountains!", True, WHITE)
+            text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+            screen.blit(text, text_rect)
+            pygame.display.flip()
+            pygame.time.delay(1000)
+            
+        
+            item_collected = True
+            time_left = 12  # Resets the timer to 12 for each new level
+            level_timer = 10  # Sets the level timer to start at 10 seconds
+
+            # Check if it's level 3 and display the extra message
+            if level == 3:
+                extra_text = font.render("This One's Tricky, Make Sure To Keep An Eye Out!", True, WHITE)
+                extra_text_rect = extra_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
+                screen.blit(extra_text, extra_text_rect)
+                pygame.display.flip()
+                pygame.time.delay(2000)
+
+        # Game logic
+        if item_collected:
+            keys = pygame.key.get_pressed() # Player Movement
+            if keys[pygame.K_a]:
+                player.move(-8, 0)
+            if keys[pygame.K_d]:
+                player.move(8, 0)
+            if keys[pygame.K_w]:
+                player.move(0, -8)
+            if keys[pygame.K_s]:
+                player.move(0, 8)
+
+            player.draw(screen)
+
+            if len(items) == 0:
+                if item_timer == 0:
+                    items.append(Item())
+                    item_timer = pygame.time.get_ticks()
+                elif pygame.time.get_ticks() - item_timer >= 2500:  # Timer for item spawning (2.5 seconds)
+                    items.append(Item())
+                    item_timer = pygame.time.get_ticks()
+
+            for item in items:
+                item.draw(screen)
+                if pygame.Rect(item.x, item.y, ITEM_SIZE, ITEM_SIZE).colliderect(
+                        pygame.Rect(player.x, player.y, 40, 40)):  # Adjusts Player collision box
+                    items.remove(item)
+                    if len(items) == 0:
+                        levels[level - 1]["items_to_collect"] -= 1
+                        time_left = 10  # Resets time left after Trash is picked up
+                        if levels[level - 1]["items_to_collect"] == 0:
+                            if level < len(levels):
+                                level += 1
+                                item_collected = False
+                            else:
+                                font = pygame.font.SysFont('arial', 36)
+                                text = font.render("Congratulations, You Saved The Environment!", True, WHITE)
+                                text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
+                                screen.blit(text, text_rect)
+                                
+                                text = font.render("Press Q To Quit The Game!", True, WHITE)
+                                text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
+                                screen.blit(text, text_rect)
+                                
+                                pygame.display.flip()
+                                waiting = True
+                                while waiting:  # Wait for user to press Q
+                                    for event in pygame.event.get():
+                                        if event.type == pygame.KEYDOWN:
+                                            if event.key == pygame.K_q:
+                                                running = False
+                                                waiting = False
+                                           
+        # Display GUI
+        font = pygame.font.SysFont('arial', 24)
+        text = font.render(f"Amount Of Trash To Collect: {max(levels[level-1]['items_to_collect'], 0)}", True, WHITE)
+        screen.blit(text, (10, 10))
+
+        text = font.render(f"Time Left: {int(max(time_left, 0))}", True, WHITE)  # Cast time_left to int
+        screen.blit(text, (10, 40))
+
+        # Timer countdown
+        if item_collected:
+            time_left -= clock.get_time() / 1000  # Convert milliseconds to seconds
+
+            if time_left <= 0:
+                font = pygame.font.SysFont('arial', 36)
+                text = font.render("You lost! The Environment Got Polluted!", True, WHITE)
+                text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+                screen.blit(text, text_rect)
+                pygame.display.flip()
+                pygame.time.delay(2000)
+                running = False
+
+            if time_left <= level_timer:  # Start the level timer countdown once the countdown finishes
+                level_timer -= clock.get_time() / 1000
+
+                if level_timer <= 0:
+                    # Handle what happens when the level timer reaches zero
+                    pass
+
+        pygame.display.flip()
+        clock.tick(30)
+
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
